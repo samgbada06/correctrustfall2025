@@ -1,52 +1,86 @@
-use std::fs::File;
-use std::io::{Write, BufReader, BufRead};
-
-struct Book {
-    title: String,
-    author: String,
-    year: u16,
+trait ShowInfo {
+    fn show_info(&self);
 }
 
-fn save_books(books: &Vec<Book>, filename: &str) {
-    let mut file = File::create(filename).unwrap();
+struct StudentCore {
+    gpa: f32,
+    major: String,
+}
 
-    for book in books.iter() {
-        writeln!(file, "{} | {} | {}", book.title, book.author, book.year).unwrap();
+struct Undergrad {
+    core: StudentCore,
+}
+
+struct Grad {
+    core: StudentCore,
+    thesis: String,
+}
+
+
+impl ShowInfo for Undergrad {
+    fn show_info(&self) {
+        println!(
+            "Undergrad | Major: {} | GPA: {:.2}",
+            self.core.major, self.core.gpa
+        );
     }
 }
 
-fn load_books(filename: &str) -> Vec<Book> {
-    let file = File::open(filename).unwrap();
-    let reader = BufReader::new(file);
 
-    let mut books = Vec::new();
+impl ShowInfo for Grad {
+    fn show_info(&self) {
+        println!(
+            "Graduate | Major: {} | GPA: {:.2} | Thesis: {}",
+            self.core.major, self.core.gpa, self.thesis
+        );
+    }
+}
 
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let parts: Vec<&str> = line.split('|').map(|s| s.trim()).collect();
-        if parts.len() == 3 {
-            let title = parts[0].to_string();
-            let author = parts[1].to_string();
-            let year = parts[2].parse::<u16>().unwrap();
-            books.push(Book { title, author, year });
+struct Enrollment<T: ShowInfo> {
+    students: Vec<T>,
+}
+
+impl<T: ShowInfo> ShowInfo for Enrollment<T> {
+    fn show_info(&self) {
+        for student in &self.students {
+            student.show_info();
         }
     }
-
-    books
 }
 
 fn main() {
-    let books = vec![
-        Book { title: "1984".to_string(), author: "George Orwell".to_string(), year: 1949 },
-        Book { title: "To Kill a Mockingbird".to_string(), author: "Harper Lee".to_string(), year: 1960 },
-    ];
+    let undergrads = Enrollment {
+        students: vec![
+            Undergrad {
+                core: StudentCore {
+                    gpa: 3.7,
+                    major: String::from("CS"),
+                },
+            },
+            Undergrad {
+                core: StudentCore {
+                    gpa: 3.9,
+                    major: String::from("Arts"),
+                },
+            },
+        ],
+    };
 
-    save_books(&books, "books.txt");
-    println!("Books saved to file.");
+    let grads = Enrollment {
+        students: vec![
+            Grad {
+                core: StudentCore {
+                    gpa: 3.8,
+                    major: String::from("Data Science"),
+                },
+                thesis: String::from("Tableau is very good."),
+            },
+        ],
+    };
 
-    let loaded_books = load_books("books.txt");
-    println!("Loaded books:");
-    for book in loaded_books {
-        println!("{} by {}, published in {}", book.title, book.author, book.year);
-    }
+    println!("Undergrad:");
+    undergrads.show_info();
+
+    println!("\nGrad:");
+    grads.show_info();
 }
